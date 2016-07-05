@@ -1,0 +1,136 @@
+#pragma once
+#include <type_traits>
+#include <new>
+namespace jehn {
+	template<bool... T>
+	struct and_t {
+		static constexpr bool value = false;
+	};
+	template<bool... T>
+	struct and_t<true,T...> {
+		static constexpr bool value = and_t<T...>::value;
+	};
+	template<>
+	struct and_t<true> {
+		static constexpr bool value = true;
+	};
+	template<bool... T>
+	struct or_t {
+		static constexpr bool value = true;
+	};
+	template<bool... T>
+	struct or_t<false, T...> {
+		static constexpr bool value = and_t<T...>::value;
+	};
+	template<>
+	struct or_t<false> {
+		static constexpr bool value = false;
+	};
+	template<class T>
+	class vector {
+		typedef vector<T> _myt;
+		int len;
+		int cp;
+		T* targ;
+		inline vector(int k) :len(0), cp(k), targ((T*)malloc(sizeof(T)*k)) {}
+		inline vector(int len, T* t) : len(len), cp(len), targ((T*)malloc(sizeof(T)*len)) {
+			vector_sub_l(len, t);
+		}
+		template<class S, class... U, class = typename std::enable_if<std::is_constructible<T, S>::value,
+			void>::type>
+			inline void push_back_sub(S s, U... t) {
+			push_back_sub(std::forward<S>(s));
+			push_back_sub(std::forward<U>(t)...);
+		}
+		template<class S, class = typename std::enable_if<std::is_constructible<T, S>::value,
+			void>::type>
+			inline void push_back_sub(S s) {
+			new (targ+len++) T(s);
+		}
+		inline void vector_sub_l(int len, T* f) {
+			for (int i = 0; i < len; i++) {
+				new (targ + i) T(f[i]);
+			}
+		}
+		inline void vector_sub_r(int len, T* f) {
+			for (int i = 0; i < len; i++) {
+				new (targ + i) T((T&&)f[i]);
+			}
+		}
+		inline void vector_sub(int len, T* f, T* t) {
+			for (int i = 0; i < len; i++) {
+				new (t + i) T(f[i]);
+			}
+		}
+		inline void destroy_sub(int len, T* d) {
+			for (int i = 0; i < len; i++) {
+				d[i].~T();
+			}
+		}
+	public:
+		inline vector() :targ(0), len(0), cp(0) { }
+		inline vector(_myt&& o) : len(o.len), cp(o.cp), targ(o.targ) { o.targ = 0; o.len = o.cp = 0; }
+		inline vector(const _myt& o) : vector(o.len, o.targ) {}
+		template<class... U, class = typename std::enable_if<jehn::and_t<std::is_constructible<T, U>::value...>::value,
+			void>::type>
+		inline static _myt makevector(U... t) {
+			_myt k = _myt(sizeof...(U));
+			k.push_back_sub(std::forward<U>(t)...);
+			return (_myt&&)k;
+		}
+		inline _myt operator+(_myt& o) {
+			return (_myt(o.len + len) += *this) += o;
+		}
+		_myt& operator=(_myt& o) {
+			if (&o == this)
+				return*this;
+			this->~_myt();
+			return *new (this) _myt(o);
+		}
+		_myt& operator=(_myt&& o) {
+			if (&o == this)
+				return*this;
+			this->~_myt();
+			return *new (this) _myt(std::move(o));
+		}
+		_myt& operator+=(_myt& o) {
+			if (!targ)
+				return *new (this) _myt(o);
+			reserve(o.len);
+			vector_sub(o.len, o.targ, targ + len);
+			return *this;
+		}
+		void reserve(int k) {
+			if (cp - len >= k)
+				return;
+			if (!targ) {
+				new (this) _myt(k);
+				return;
+			}
+			int tlen = len;
+			T* tmp = targ;
+			new (this) _myt(tlen + k);
+			vector_sub_r(len=tlen, tmp);
+			destroy_sub(tlen, tmp);
+			return;
+		}
+		template<class... U, class = typename std::enable_if<jehn::and_t<std::is_constructible<T, U>::value...>::value,
+			void>::type>
+		inline void push_back(U... t) {
+			reserve(sizeof...(U));
+			push_back_sub(std::forward<U>(t)...);
+		}
+		inline void pop_back() {
+			targ[--len].~T();
+		}
+		inline T& operator[](int i) { return targ[i]; }
+		inline int size() { return len; }
+		inline ~vector() {
+			if (!targ)
+				return;
+			destroy_sub(len, targ);
+			free(targ);
+		}
+	};
+
+}
