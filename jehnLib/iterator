@@ -1,0 +1,50 @@
+#pragma once
+namespace jehn {
+	template<class T>
+	class increaser {
+		T t;
+	public:
+		inline increaser(T&& t) : t(std::move(t)) {}
+		increaser& operator++() {
+			++t;
+			return *this;
+
+		}
+		increaser operator++(int) {
+			return increaser(t++);
+		}
+		increaser& operator--() {
+			--t;
+			return *this;
+
+		}
+		increaser operator--(int) {
+			return increaser(t--);
+		}
+		T operator*() {
+			return t;
+		}
+	};
+	template<class T>
+	class repeater {
+		T t;
+	public:
+		inline repeater(T&& t) :t(std::forward<T>(t)) {}
+		repeater& operator++() {
+			return *this;
+		}
+		repeater operator++(int) {
+			return *this;
+		}
+		repeater& operator--() {
+			return *this;
+
+		}
+		repeater operator--(int) {
+			return *this;
+		}
+		T operator*() {
+			return t;
+		}
+	};
+}
