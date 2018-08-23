@@ -1,0 +1,183 @@
+#pragma once
+#include <xutility>
+namespace jehn {
+	template<class T>
+	class forwardList {
+		class iterator;
+		class node {
+		public:
+			iterator next;
+			T body;
+		};
+	public:
+		class forwardIterator;
+		class singleNode;
+		class iterator {
+			friend class singleNode;
+			friend class forwardIterator;
+			node* n;
+			iterator(node* n) :n(n) {}
+		public:
+			iterator() :iterator(nullptr) {}
+			iterator(std::nullptr_t) :n(nullptr) {}
+			iterator(forwardIterator s) :n(s.n->n) {}
+			iterator & operator++() {
+				*this = next();
+			}
+			T& operator*() {
+				return n->body;
+			}
+			T* operator->() {
+				return &(n->body);
+			}
+			bool operator!=(iterator o) {
+				return n != o.n;
+			}
+			forwardIterator next() {
+				return &(n->next);
+			}
+			size_t size() {
+				if (n == nullptr)return 0;
+				return 1 + n->next.size();
+			}
+		};
+		class forwardIterator {
+			friend class backInserter_t;
+			friend class iterator;
+			friend class forwardList<T>;
+			iterator* n;
+			forwardIterator(iterator* n) :n(n) {}
+		public:
+			forwardIterator() :forwardIterator(nullptr) {}
+			forwardIterator(std::nullptr_t) :n(nullptr) {}
+			forwardIterator & operator++() {
+				*this = n->next();
+				return *this;
+			}
+			T& operator*() {
+				return **n;
+			}
+			T* operator->() {
+				return n->operator->();
+			}
+			forwardList<T> split() {
+				forwardList<T> s;
+				s.ibegin = *n;
+				*n = nullptr;
+				return s;
+			}
+			singleNode pop() {
+				singleNode k = *n;
+				*n = *(n->next().n);
+				return k;
+			}
+			void push(T s) {
+				*n = iterator(new node{ *n,std::forward<T>(s) });
+			}
+			void push(singleNode&& s) {
+				*(s.b.next().n) = *n;
+				*n = s.b;
+				s.b = nullptr;
+			}
+			void iter_swap(forwardList& k) {
+				std::swap(*n, *(k.n));
+				std::swap(*(n->next().n), *(k.n->next().n));
+			}
+			size_t size() {
+				return n->size();
+			}
+		};
+		class singleNode {
+			iterator b;
+			friend class forwardList<T>;
+			singleNode() :singleNode(nullptr) {}
+			singleNode(iterator b) :b(b) {}
+		public:
+			singleNode(T s) :b(new node{ nullptr,std::forward<T>(s) }) {}
+			singleNode(singleNode& s) = delete;
+			singleNode(singleNode&& s) :b(s.b) { s.b = nullptr; }
+			singleNode(std::nullptr_t) :b(nullptr) {}
+			singleNode& operator=(T) = delete;
+			singleNode& operator=(singleNode&) = delete;
+			auto operator*() {
+				return *b;
+			}
+			auto operator->() {
+				return b.operator->();
+			}
+			~singleNode() {
+				if (b.n)delete b.n;
+			}
+		};
+	private:
+		iterator ibegin;
+	public:
+		forwardList() : ibegin(nullptr) {}
+		forwardList(forwardList<T>& s) = delete;
+		forwardList(forwardList<T>&& s) :ibegin(s.ibegin) { s.ibegin = nullptr; }
+		forwardList(T s) : ibegin(new node{ nullptr,std::forward<T>(s) }) {}
+		forwardList(singleNode&& s) : ibegin(s.b) { s.b = nullptr; }
+		forwardList<T>& operator=(forwardList<T>&& s) {
+			std::swap(*this, s);
+			return *this;
+		}
+		forwardList<T>& operator=(singleNode&& s) = delete;
+		iterator begin() {
+			return ibegin;
+		}
+		forwardIterator fbegin() {
+			return &ibegin;
+		}
+		static iterator end() {
+			return nullptr;
+		}
+		class backInserter_t;
+		class backInsertUnit {
+			friend class backInserter_t;
+			backInserter_t& i;
+			backInsertUnit(backInserter_t& a) :i(a) {}
+		public:
+			backInsertUnit & operator=(T s) {
+				i.Insert(std::forward<T>(s));
+				return *this;
+			}
+			backInsertUnit& operator=(const backInsertUnit&) = delete;
+			backInsertUnit& operator=(const backInsertUnit&&) = delete;
+		};
+		class backInserter_t {
+			forwardIterator e;
+		public:
+			backInserter_t(forwardIterator f) :e(f) {
+				while (iterator(e) != forwardList<T>::end()) {
+					++e;
+				}
+			}
+			void Insert(T s) {
+				e.push(std::forward<T>(s));
+				++e;
+			}
+			void Insert(singleNode&& s) {
+				e.push(std::move(s));
+				++e;
+			}
+			void Insert(forwardList<T>&& s) {
+				*(e.n) = *(s.fbegin().n);
+				*(s.fbegin().n) = nullptr;
+				while (iterator(e) != forwardList<T>::end()) {
+					++e;
+				}
+			}
+
+			backInsertUnit operator*() {
+				return backInsertUnit(*this);
+			}
+		};
+		backInserter_t backInserter() {
+			return backInserter_t(this->fbegin());
+		}
+		~forwardList() {
+			while (begin() != nullptr)fbegin().pop();
+		}
+
+	};
+}

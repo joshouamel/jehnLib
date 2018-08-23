@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?> 
+<AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
+
+
+  <Type Name="jehn::forwardList&lt;*&gt;">
+    <DisplayString>forwardList</DisplayString>
+    <Expand>
+      <LinkedListItems>
+        <HeadPointer>ibegin.n</HeadPointer>
+        <NextPointer>next.n!=0?next.n:0</NextPointer>
+        <ValueNode>body</ValueNode>
+      </LinkedListItems>
+    </Expand>
+  </Type>
+
+  <Type Name="jehn::forwardList&lt;*&gt;::iterator">
+    <DisplayString>forwardList`s iterator</DisplayString>
+    <Expand>
+      <Item Name="body">n->body</Item>
+      <Item Name="next">n->next</Item>
+    </Expand>
+  </Type>
+  <Type Name="jehn::forwardList&lt;*&gt;::forwardIterator">
+    <DisplayString>forwardList`s forwardIterator</DisplayString>
+    <Expand>
+      <Item Name="body">n->n->body</Item>
+      <Item Name="next">n->n->next</Item>
+    </Expand>
+  </Type>
+  <Type Name="jehn::forwardList&lt;*&gt;::singleNode">
+    <DisplayString>forwardList`s singleNode</DisplayString>
+    <Expand>
+      <Item Name="body">b.n->body</Item>
+    </Expand>
+  </Type>
+  <Type Name="jehn::forwardList&lt;*&gt;::backInserter_t">
+    <DisplayString>forwardList`s backInserter_t</DisplayString>
+    <Expand>
+    </Expand>  
+  </Type>
+  <Type Name="jehn::forwardList&lt;*&gt;::backInsertUnit">
+    <DisplayString>forwardList`s backInsertUnit</DisplayString>
+    <Expand>
+    </Expand> 
+  </Type>
+</AutoVisualizer>
