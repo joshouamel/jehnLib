@@ -1,0 +1,130 @@
+#pragma once
+#include <xutility>
+namespace jehn {
+	template<class T>
+	class List {
+		class iterator;
+		class nodeb {
+		public:
+			iterator prev;
+			iterator next;
+		};
+		class node:public nodeb {
+		public:
+			T body;
+		};
+	public:
+		class singleNode;
+		class iterator {
+			friend class singleNode;
+			friend class List<T>;
+			node* n;
+			void forward(iterator i) {
+				n->next = i;
+				i.n->prev = *this;
+			}
+			iterator(nodeb* n) :n((node*)n) {}
+		public:
+			iterator() :iterator(nullptr) {}
+			iterator(std::nullptr_t) :n(nullptr) {}
+			iterator & operator++() {
+				return *this = n->next;
+			}
+			iterator & operator--() {
+				return *this = n->prev;
+			}
+			T& operator*() {
+				return n->body;
+			}
+			T* operator->() {
+				return &(n->body);
+			}
+			bool operator!=(iterator o) {
+				return n != o.n;
+			}
+			singleNode pop() {
+				singleNode k = *this;
+				n->next.n->prev = n->prev;
+				*this=n->prev.n->next = n->next;
+				return k;
+			}
+			void push(T s) {
+				n->prev=n->prev.n->next = iterator(new node{n->prev,*this ,std::forward<T>(s) });
+			}
+			void push(singleNode&& s) {
+				n->prev.forward(s.b);
+				s.b.forward(*this);
+				s.b = nullptr;
+			}
+			/*void iter_swap(List& k) {
+				std::swap(*n, *(k.n));
+				std::swap(*(n->next().n), *(k.n->next().n));
+			}*/
+		};
+		
+		class singleNode {
+			iterator b;
+			friend class List<T>;
+			singleNode() :singleNode(nullptr) {}
+			singleNode(iterator b) :b(b) {}
+		public:
+			singleNode(T s) :b(new node{nullptr, nullptr,std::forward<T>(s) }) {}
+			singleNode(singleNode& s) = delete;
+			singleNode(singleNode&& s) :b(s.b) { s.b = nullptr; }
+			singleNode(std::nullptr_t) :b(nullptr) {}
+			singleNode& operator=(T) = delete;
+			singleNode& operator=(singleNode&) = delete;
+			singleNode& operator=(singleNode&&s) { std::swap(b, s.b); };
+			auto operator*() {
+				return *b;
+			}
+			auto operator->() {
+				return b.operator->();
+			}
+			~singleNode() {
+				if (b.n)delete b.n;
+			}
+		};
+	private:
+		nodeb ibegin;
+	public:
+		List() : ibegin{ &ibegin,&ibegin } {}
+		List(List<T>& s) = delete;
+		List(List<T>&& s) :ibegin(s.ibegin) { s.ibegin = nodeb{&(s.ibegin),&(s.ibegin) }; }
+		explicit List(T s) : ibegin(new node{ &ibegin,&ibegin,std::forward<T>(s) }) {}
+		List(singleNode&& s) : ibegin(s.b) { ibegin.next = ibegin.prev = &ibegin; s.b = nullptr; }
+		List<T>& operator=(singleNode&& s) = delete;
+		List<T>& operator=(List<T>&& s) {
+			std::swap(ibegin, s.ibegin);
+			return *this;
+		}
+		iterator begin() {
+			return ibegin.next;
+		}
+		iterator end() {
+			return iterator(&ibegin);
+		}
+		List<T> pop_back(iterator i=--end()) {
+			List<T> r;
+			end().n->prev.forward(r.end());
+			i.n->prev.forward(end());
+			r.end().forward(i);
+			return r;
+		}
+		void append(List<T>&& l) {
+			if (l.begin() == l.end())return;
+			end().n->prev.forward(l.begin());
+			l.end().n->prev.forward(end());
+			 l.ibegin = nodeb{ &(l.ibegin),&(l.ibegin) };
+		}
+		size_t size() {
+			size_t s = 0;
+			for (auto i = begin(); i != end(); i++, s++);
+			return s;
+		}
+		~List() {
+			while (begin() != end())begin().pop();
+		}
+
+	};
+}

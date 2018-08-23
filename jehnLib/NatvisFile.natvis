@@ -43,4 +43,33 @@
     <Expand>
     </Expand> 
   </Type>
+
+
+
+
+  <Type Name="jehn::List&lt;*&gt;">
+    <DisplayString>List</DisplayString>
+    <Expand>
+      <LinkedListItems>
+        <HeadPointer>ibegin</HeadPointer>
+        <NextPointer>this</NextPointer>
+        <ValueNode>next</ValueNode>
+      </LinkedListItems>
+    </Expand>
+  </Type>
+
+  <Type Name="jehn::List&lt;*&gt;::iterator">
+    <DisplayString>List`s iterator</DisplayString>
+    <Expand>
+      <Item Name="body">n->body</Item>
+      <Item Name="next">n->next</Item>
+      <Item Name="prev">n->prev</Item>
+    </Expand>
+  </Type>
+  <Type Name="jehn::List&lt;*&gt;::singleNode">
+    <DisplayString>List`s singleNode</DisplayString>
+    <Expand>
+      <Item Name="body">b.n->body</Item>
+    </Expand>
+  </Type>
 </AutoVisualizer>

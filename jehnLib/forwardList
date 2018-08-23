@@ -15,6 +15,7 @@ namespace jehn {
 		class iterator {
 			friend class singleNode;
 			friend class forwardIterator;
+			friend class forwardList<T>;
 			node* n;
 			iterator(node* n) :n(n) {}
 		public:
@@ -115,13 +116,13 @@ namespace jehn {
 		forwardList() : ibegin(nullptr) {}
 		forwardList(forwardList<T>& s) = delete;
 		forwardList(forwardList<T>&& s) :ibegin(s.ibegin) { s.ibegin = nullptr; }
-		forwardList(T s) : ibegin(new node{ nullptr,std::forward<T>(s) }) {}
+		explicit forwardList(T s) : ibegin(new node{ nullptr,std::forward<T>(s) }) {}
 		forwardList(singleNode&& s) : ibegin(s.b) { s.b = nullptr; }
+		forwardList<T>& operator=(singleNode&& s) = delete;
 		forwardList<T>& operator=(forwardList<T>&& s) {
-			std::swap(*this, s);
+			std::swap(ibegin, s.ibegin);
 			return *this;
 		}
-		forwardList<T>& operator=(singleNode&& s) = delete;
 		iterator begin() {
 			return ibegin;
 		}
