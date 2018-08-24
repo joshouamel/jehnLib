@@ -1,0 +1,155 @@
+#pragma once
+#include <type_traits>
+#include <algorithm>
+#include <jiterator>
+namespace jehn {
+	class Capacity {
+	public:
+		size_t c;
+		inline Capacity(size_t c) :c{ c } {}
+	};
+	struct stdcopymovearray_t {
+		template<class I,class E,class D>
+		static void copy(I begin, E end, D dest) {
+			std::copy(begin, end, dest);
+		}
+		template<class I, class E, class D>
+		static void move(I begin, E end, D dest) {
+			std::copy(std::make_move_iterator(begin), std::make_move_iterator(end), dest);
+		}
+	};
+	template<class T>
+	class inPlaceVector {
+	public:
+		// types:
+		typedef T                                     value_type;
+		typedef T &                                   reference;
+		typedef const T &                             const_reference;
+		typedef T *                                   pointer;
+		typedef const T *                             const_pointer;
+		typedef T *                                   iterator;
+		typedef const T *                             const_iterator;
+		typedef std::reverse_iterator<iterator>       reverse_iterator;
+		typedef std::reverse_iterator<const_iterator> const_reverse_iterator;
+		typedef ptrdiff_t                             difference_type;
+		typedef size_t size_type;
+		typedef inPlaceVector<T> _myt;
+
+	private:
+		size_type len;
+		pointer targ;
+
+	public:
+
+		inline inPlaceVector() noexcept :len(0),targ(nullptr) { }
+		explicit inPlaceVector(size_type k) :targ(new T[k]), len(k) {}
+		inline inPlaceVector(Capacity k) : inPlaceVector(k.c) {}
+		inline inPlaceVector(_myt&& o) : targ(o.targ), len(o.len) { o.targ = nullptr; o.len = 0; }
+		template<class I, class E> inPlaceVector(I begin, E end) : inPlaceVector(end-begin) { assign(begin, end); }
+		inline inPlaceVector(std::initializer_list<value_type>  l) : inPlaceVector(l.begin(), l.end()) {}
+		inline inPlaceVector(const _myt& o) : inPlaceVector(o.begin(), o.end()) {}
+
+		const_iterator cbegin() const noexcept {
+			return begin();
+		}
+		const_iterator cend() const noexcept {
+			return end();
+		}
+		iterator begin() const noexcept {
+			return targ;
+		}
+		iterator end() const noexcept {
+			return targ + size();
+		}
+		template<class C= stdcopymovearray_t>
+		class sub_t {
+			iterator iend;
+			iterator ibegin;
+			sub_t(iterator i, iterator e) :ibegin(i), iend(e) {}
+		public:
+			const_iterator cbegin() const noexcept {
+				return begin();
+			}
+			const_iterator cend() const noexcept {
+				return end();
+			}
+			iterator begin() const noexcept {
+				return ibegin;
+			}
+			iterator end() const noexcept {
+				return iend;
+			}
+			capper_t<iterator> getEnumerable() {
+				return capper(ibegin, iend);
+			}
+			template<class I, class E> inline void assign(I begin, E end) const { if (end - begin > size()) throw std::out_of_range("대입할 수 없는 크기입니다."); std::copy(begin, end, this->begin()); }
+			void assign(sub_t o) {
+				if (o.end() - o.begin() > size()) throw std::out_of_range("대입할 수 없는 크기입니다.");
+				C::copy(o.begin(), o.end(), begin());
+			}
+			void assign(move_container<sub_t> o) {
+				if (o.end() - o.begin() > size()) throw std::out_of_range("대입할 수 없는 크기입니다.");
+				C::move(o.begin().base(), o.end().base(), begin());
+			}
+			void assign(move_container<sub_t&> o) {
+				if (o.end() - o.begin() > size()) throw std::out_of_range("대입할 수 없는 크기입니다.");
+				C::move(o.begin().base(), o.end().base(), begin());
+			}
+			static sub_t<C> sub(iterator i, iterator e) {
+				return sub_t(i, e);
+			}
+			sub_t<C> sub(iterator e) {
+				return sub(begin(), e);
+			}
+			sub_t<C> sub(iterator b, end_t) {
+				return sub_t(b, end());
+			}
+			inline reference operator[](int i) const{ return at(i); }
+			inline reference at(int i) const { if (i<0 || i>size()) throw std::out_of_range("범위를 벗어났습니다."); return ibegin[i]; }
+			//inline reference at(unSafe, int i) const noexcept { return ibegin[i]; }
+			inline size_type size() const noexcept { return iend-ibegin; }
+		};
+		sub_t sub() {
+			return sub(begin(), end());
+		}
+		sub_t sub(iterator i, iterator e) {
+			return sub_t::sub(i, e);
+		}
+		
+		sub_t sub(iterator e) {
+			return sub(begin(), e);
+		}
+		sub_t sub(iterator b,end_t) {
+			return sub(b, end());
+		}
+		capper_t<iterator> getEnumerable() {
+			return capper(begin(), end());
+		}
+
+
+		inline _myt& operator=(const _myt& o) {
+			if (&o == this) return;
+			sub().assign(o.sub());
+			return *this;
+		}
+		inline _myt& operator=(_myt&& o) {
+			swap(o);
+			return*this;
+		}
+
+		void swap(_myt& o) noexcept {
+			swap(len, o.len);
+			swap(targ, o.targ);
+		}
+
+		inline reference operator[](int i) const{ return at(i); }
+		inline reference at(int i) const { if (i<0 || i>len) throw std::out_of_range("범위를 벗어났습니다."); return targ[i]; }
+		inline reference at(unSafe, int i) const noexcept { return targ[i]; }
+		inline size_type size() const noexcept { return len; }
+		virtual ~inPlaceVector() {
+			if (!targ)
+				return;
+			delete[] targ;
+		}
+	};
+}
