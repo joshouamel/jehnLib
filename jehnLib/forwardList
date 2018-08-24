@@ -176,6 +176,12 @@ namespace jehn {
 		backInserter_t backInserter() {
 			return backInserter_t(this->fbegin());
 		}
+		void Add(T s) {
+			backInserter().Insert(std::forward<T>(s));
+		}
+		void push_back(T s) {
+			Add(std::forward<T>(s));
+		}
 		~forwardList() {
 			while (begin() != nullptr)fbegin().pop();
 		}

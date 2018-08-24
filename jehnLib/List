@@ -1,5 +1,6 @@
 #pragma once
 #include <xutility>
+#include <iterator>
 namespace jehn {
 	template<class T>
 	class List {
@@ -85,6 +86,37 @@ namespace jehn {
 				if (b.n)delete b.n;
 			}
 		};
+		class Enumerable {
+			friend class List<T>;
+			nodeb b;
+			Enumerable(nodeb n):b(n) {}
+		public:
+				iterator begin() {
+					return b.next;
+				}
+				iterator end() {
+					return n.prev;
+				}
+				Enumerable & operator++() {
+					++ (n.next);
+					return *this;
+				}
+				Enumerable & operator--() {
+					return *this = n->prev;
+				}
+				T& operator*() {
+					return n->body;
+				}
+				T* operator->() {
+					return &(n->body);
+				}
+				bool operator!=(iterator o) {
+					return b.next != o;
+				}
+				bool operator!=(end_t o) {
+					return b.next != b.prev;
+				}
+		};
 	private:
 		nodeb ibegin;
 	public:
@@ -104,12 +136,21 @@ namespace jehn {
 		iterator end() {
 			return iterator(&ibegin);
 		}
+		Enumerable getEnumerable() {
+			return Enumerable(nodeb{ begin(),end() });
+		}
 		List<T> pop_back(iterator i=--end()) {
 			List<T> r;
 			end().n->prev.forward(r.end());
 			i.n->prev.forward(end());
 			r.end().forward(i);
 			return r;
+		}
+		void Add(T s) {
+			end().push(std::forward<T>(s));
+		}
+		void push_back(T s) {
+			Add(std::forward<T>(s));
 		}
 		void append(List<T>&& l) {
 			if (l.begin() == l.end())return;
