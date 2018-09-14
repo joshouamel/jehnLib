@@ -1,0 +1,168 @@
+#pragma once
+#include <xutility>
+#include <functional>
+namespace jehn {
+	template<class T, class Key>
+	class RedBlackTree {
+		class node {
+			node* parent;
+			node* left;
+			node* right;
+			enum { BLACK, RED } color;
+			T v;
+			node(T v) :parent(nullptr), left(nullptr), right(nullptr), color(BLACK), v(std::move(v)) {}
+		};
+		node * root;
+		std::function<bool(T&, Key&)> f;
+		std::function<bool(T&, Key&)> eq;
+		//p는 해당 노드의 부모
+		void simpleRestructoringOnce(node* p) {
+			if (p == nullptr)return;
+			if (p->parent == root)return;
+			node* pp = p->parent;
+			node ** rp;
+			node ** lp;
+			node ** yp;
+			if (pp->right == p) {
+				lp = &(p->left);
+				rp = &(pp->right);
+				yp = &(*lp->right);
+			}
+			else {
+				lp = &(p->right);
+				rp = &(pp->left);
+				yp = &(*lp->left);
+			}
+			if (pp->parent->left == pp) pp->parent->left = p;
+			else pp->parent->right = p;
+			p->parent = pp->parent;
+			pp->parent = p;
+			*rp = *lp;
+			*lp->parent = pp;
+			*lp = pp;
+
+		}
+		//d의 부모가 빨강
+		void restructoring(node * d) {
+			if (d == nullptr)return;
+			if (d->parent == nullptr)return;
+			node *p = d->parent;
+			node* pp = p->parent;
+			if ((pp->right == p&&p->left == d) || (pp->left == p&&p->right == d)) {
+				simpleRestructoringOnce(d);
+				p = d;
+			}
+			simpleRestructoringOnce(p);
+			pp->color = RED;
+			p->color = BLACK;
+
+		}
+		void doubleRed(node* d) {
+			if (d == nullptr) return;
+			node*p = d->parent;
+			if (p->color == BLACK)return;
+			node *pp = p->parent;
+			if (pp->left != nullptr&&pp->right != nullptr&&pp->right->color == RED&&pp->left->color == RED) {
+				pp->right->color = pp->left->color = BLACK;
+				if (pp != root)
+					pp->color = RED;
+				doubleRed(pp);
+			}
+			restructoring(d);
+		}
+		void makeRed(node *p) {
+			if (p == nullptr)return;
+			if (p == root)return;
+			if (p->color == RED)return;
+			node *pp = p->parent;
+			node *cp;
+			if (pp->left == p)cp = pp->right;
+			else cp = pp->left;
+			if (pp->color == RED);
+			if (cp->color == RED) {
+				simpleRestructoringOnce(cp);
+				cp->color = BLACK;
+				pp->color = RED;
+				if (pp->left == p)cp = pp->right;
+				else cp = pp->left;
+			}
+			else {
+				if (pp != root)makeRed(pp);
+			}
+			pp->color = BLACK;
+			cp->color = RED;
+			node* rp = cp->right;
+			doubleRed(cp->left);
+			doubleRed(rp);
+			p->color = RED;
+		}
+	public:
+		RedBlackTree(std::function<bool(T&, Key&)> f, std::function<bool(T&, Key&)> eq) :root(nullptr), f(f), eq(eq) {}
+		RedBlackTree(std::function<Key&(T&)> f) :root(nullptr), f([](T& t, Key& k) {return f(t) < k; }), eq([](T& t, Key& k) {return f(t) == k; }) {}
+		void insert(T v) {
+			if (root == nullptr) root = new node{ std::move(v) };
+			node* p = root;
+			node **dp;
+			for (;;) {
+				if (f(p->v, v) || eq(p->v, v))
+					dp = &(p->right);
+				else
+					dp = &(p->left);
+				if (*dp == nullptr)break;
+				p = *dp;
+			}
+			*dp = new node{ std::move(v) };
+			doubleRed(*dp);
+		}
+		node* find(Key v) {
+			node *p = root;
+			while (true) {
+				if (p == nullptr) break;
+				if (eq(p->v, v))break;
+				if (f(p->v, v))p = p->left;
+				else p = p->right;
+			}
+			return p;
+		}
+		void remove(Key v) {
+			node *p = find(v);
+			if (p == nullptr) return;
+			if (p->right == nullptr);
+			else if (p->left == nullptr) {
+				simpleRestructoringOnce(p->right);
+				p->color = RED;
+				p->parent->color = BLACK;
+			}
+			else {
+				node *s = p->left;
+				while (s->right != nullptr)s = s->right;
+				std::swap(p->color, s->color);
+				if (p == root); else if (p->parent->left == p)p->parent->left = s; else p->parent->right = s;
+				if (s->left != nullptr)s->left->parent = p;
+				p->right->parent = s;
+				if (p->left == s) {
+					s->left = p;
+				}
+				else {
+					p->left->parent = s;
+					s->parent->right = p;
+					s->left = p->left;
+				}
+				s->parent = p->parent;
+				p->left = s->left;
+				s->right = p->right;
+				p->right = s->right;
+				p = s;
+			}
+			if (p->left != nullptr) {
+				simpleRestructoringOnce(p->left);
+				p->color = RED;
+				p->parent->color = BLACK;
+			}
+			else makeRed(p);
+			if (p->parent->left == p)p->parent->left = nullptr;
+			else p->parent->right = nullptr;
+			delete(p);
+		}
+	};
+}
