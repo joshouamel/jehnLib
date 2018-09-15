@@ -1,0 +1,118 @@
+#pragma once
+#include <xutility>
+#include <tuple>
+#include <vector>
+namespace jehn {
+	template<class T,class Key>
+	class CompleteBinaryTree {
+		typedef  int T;
+		typedef std::vector<std::pair<Key, T>>::iterator nodep;
+		std::vector<std::pair<Key, T>> cap;
+		nodep root;
+		nodep parent(nodep c) {
+			return cap.begin() + (c - cap.begin() - 1) / 2;
+		}
+		nodep left(nodep p) {
+			size_t idx = (p - cap.begin()) * 2 + 1;
+			if (idx >= length) {
+				return nullptr;
+			}
+			return cap.begin() + idx;
+		}
+		nodep right(nodep p) {
+			size_t idx = (p - cap.begin()) * 2 + 2;
+			if (idx >= length) {
+				return nullptr;
+			}
+			return cap.begin() + idx;
+		}
+		bool isleft(nodep p) {
+			return (p - cap.begin()) & 1;
+		}
+		bool isright(nodep p) {
+			return !isleft(p);
+		}
+		Key getKey(nodep p) {
+			return p->first;
+		}
+		T getValue(nodep p) {
+			return p->second;
+		}
+		nodep max(nodep p) {
+			while (true) {
+				nodep d = right(p);
+				if (d == nullptr)return p;
+				p = d;
+			}
+		}
+		nodep min(nodep p) {
+			while (true) {
+				nodep d = left(p);
+				if (d == nullptr)return p;
+				p = d;
+			}
+		}
+		void swapp(nodep d, nodep i) {
+			std::swap(*i, *d);
+		}
+		void claimUp(nodep i) {
+			std::swap(*i, *parent(i));
+		}
+		void cc(nodep p) {
+			nodep t = left(p);
+			if (t != nullptr) {
+				t = max(t);
+				if (getKey(t) > getKey(p)) {
+					swapp(t, p);
+					replacing(t);
+					return;
+				}
+			}
+			t = right(p);
+			if (t != nullptr) {
+				t = min(t);
+				if (getKey(t) < getKey(p)) {
+					swapp(t, p);
+					replacing(t);
+					return;
+				}
+			}
+
+		}
+		void replacing(nodep idx) {
+
+			nodep pp = parent(idx);
+			if ((idx == cap.begin()) || (isright(idx) && getKey(pp) <= getKey(idx)) || (isleft(pp) && getKey(pp) >= getKey(idx))) {
+				cc(idx);
+				return;
+			}
+			claimUp(idx);
+			cc(idx);
+			replacing(pp);
+		}
+		void remove(nodep p) {
+			swapp(p, cap.begin() + length - 1);
+			length--;
+			replacing(p);
+		}
+		nodep find(nodep r, Key v) {
+			if (r == nullptr)
+				return nullptr;
+			if (getKey(r) == v)return r;
+			if (getKey(r) > v)return find(right(r), v);
+			else return find(left(r), v);
+		}
+	public:
+		CompleteBinaryTree() :cap(), length(0) {}
+		void insert(std::pair<Key, T> v) {
+			cap.push_back(v);
+			replacing(cap.end()-1);
+		}
+		void remove(Key v) {
+			remove(find(cap.begin(), v));
+		}
+		T& find(Key v) {
+			return getValue(find(cap.begin(), v));
+		}
+	};
+}
